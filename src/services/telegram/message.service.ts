@@ -14,7 +14,7 @@ import {
 export const SProcessMessage = async (
   body: ITelegramMessageBody
 ): Promise<IGlobalResponse<ITelegramMessageResponse>> => {
-  const text = body.text ?? "";
+  const text = body.message.text ?? "";
   console.log(body);
   try {
     const [correctedText, botResponse] = await Promise.all([
@@ -22,8 +22,8 @@ export const SProcessMessage = async (
       generateResponse(text),
     ]);
 
-    await sendMessage(body.chat.id, correctedText);
-    await sendMessage(body.chat.id, botResponse);
+    await sendMessage(body.message.chat.id, correctedText);
+    await sendMessage(body.message.chat.id, botResponse);
 
     return {
       status: HttpStatusCode.Ok,
