@@ -18,7 +18,7 @@
     "node-telegram-bot-api": "^0.66.0"
   },
   "engines": {
-    "node": ">=22.14.0"
+    "node": ">=22"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
