@@ -11,5 +11,6 @@ export const env = {
   },
   TELEGRAM: {
     TOKEN: process.env.TELEGRAM_TOKEN ?? "",
+    URL: process.env.TELEGRAM_URL ?? "",
   },
 };
