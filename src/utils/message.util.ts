@@ -10,6 +10,7 @@ export const sendMessage = async (chat_id: number | string, text: string) => {
     await axios.post(`${TELEGRAM_API_URL}/sendMessage`, {
       chat_id,
       text,
+      parse_mode: "HTML",
     });
   } catch (error) {
     throw handleError(error);
