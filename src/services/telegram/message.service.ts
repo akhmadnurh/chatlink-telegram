@@ -47,6 +47,7 @@ export const SProcessMessage = async (
       },
     };
   } catch (error) {
+    console.log(error);
     throw handleError(error);
   }
 };
