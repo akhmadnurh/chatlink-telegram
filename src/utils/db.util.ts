@@ -1,45 +1,59 @@
 import { join } from "path";
+import { Database, open } from "sqlite";
+import sqlite3 from "sqlite3";
 import { IUserSummaryDb } from "../interfaces/global/db.interface";
-import { Low, JSONFile } from "lowdb";
 import { handleError } from "./error.util";
 
 const defaultData: IUserSummaryDb = {
   summary: null,
 };
+
+const getDb = async (): Promise<Database> => {
+  const dbPath = join(__dirname, "..", "..", "db", "users.sqlite");
+  const db = await open({
+    filename: dbPath,
+    driver: sqlite3.Database,
+  });
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS user_summaries (
+      chatId INTEGER PRIMARY KEY,
+      summary TEXT
+    )
+  `);
+
+  return db;
+};
+
 export const getUserDb = async (chatId: number): Promise<IUserSummaryDb> => {
-  const dbPath = join(__dirname, "..", "..", "db", `${chatId}.json`);
-
   try {
-    const adapter = new JSONFile<IUserSummaryDb>(dbPath);
-    const db = new Low(adapter);
+    const db = await getDb();
 
-    await db.read();
+    const row = await db.get<{ summary: string | null }>(
+      "SELECT summary FROM user_summaries WHERE chatId = ?",
+      chatId
+    );
 
-    if (!db.data) {
-      db.data = defaultData;
-      await db.write();
-    }
-
-    return db.data;
+    return row ? { summary: row.summary } : defaultData;
   } catch (error) {
     throw handleError(error);
   }
 };
 
-export const setUserDb = async (chatId: number, summary: string) => {
-  const dbPath = join(__dirname, "..", "..", "db", `${chatId}.json`);
-
+export const setUserDb = async (
+  chatId: number,
+  summary: string
+): Promise<IUserSummaryDb> => {
   try {
-    const adapter = new JSONFile<IUserSummaryDb>(dbPath);
-    const db = new Low(adapter);
+    const db = await getDb();
 
-    await db.read();
+    await db.run(
+      "INSERT OR REPLACE INTO user_summaries (chatId, summary) VALUES (?, ?)",
+      chatId,
+      summary
+    );
 
-    db.data = { summary };
-
-    await db.write();
-
-    return db.data;
+    return { summary };
   } catch (error) {
     throw handleError(error);
   }
