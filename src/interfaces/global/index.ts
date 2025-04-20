@@ -1,4 +1,4 @@
 import { IGlobalErrorResponse } from "./error.interface";
-import { IGlobalResponse } from "./response.interface";
+import { IGlobalResponse, IAiGlobalResponse } from "./response.interface";
 
-export { IGlobalErrorResponse, IGlobalResponse };
+export { IGlobalErrorResponse, IGlobalResponse, IAiGlobalResponse };

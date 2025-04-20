@@ -1,12 +1,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "../configs/env";
-import { handleError } from "./error.util";
+import { IAiGlobalResponse } from "../interfaces/global/response.interface";
 
 const genAI = new GoogleGenerativeAI(env.GEMINI.API_KEY);
 
 export const model = genAI.getGenerativeModel({ model: env.GEMINI.MODEL });
 
-export const correctGrammar = async (text: string): Promise<string> => {
+export const correctGrammar = async (
+  text: string
+): Promise<IAiGlobalResponse> => {
   const prompt = `*Instruction:* You are a precise grammar and punctuation corrector. Analyze the following text provided by the user. Your task is ONLY to correct grammatical errors, spelling mistakes, capitalization, and punctuation/symbol usage (like commas, periods, question marks, apostrophes, etc.).
 
 *Crucially, you MUST NOT:*
@@ -19,7 +21,7 @@ export const correctGrammar = async (text: string): Promise<string> => {
 Output ONLY the corrected text. If there are no corrections, do not return anything.
 
 *User's Text:*
-${text}
+${text.trim()}
 
 *Corrected Text Only:*`;
 
@@ -27,25 +29,40 @@ ${text}
     const result = await model.generateContent(prompt);
 
     if (result.response.text() === "") {
-      return `<b>✅ Great job!</b> Your message is perfect.
+      return {
+        status: true,
+        message: `<b>✅ Great job!</b> Your message is perfect.
       
 &#8213;&#8213;&#8213;&#8213;&#8213;
-      `;
+      `,
+      };
     }
 
-    return `<b>⚠️ Correction:</b>
-<i>Your sentence should be:</i>
-<b>"${result.response.text()}"</b>
-
-&#8213;&#8213;&#8213;&#8213;&#8213;
-`;
+    return {
+      status: true,
+      message: `<b>⚠️ Correction:</b>
+      <i>Your sentence should be:</i>
+      <b>"${result.response.text()}"</b>
+      
+      &#8213;&#8213;&#8213;&#8213;&#8213;
+      `,
+    };
   } catch (error) {
-    return `Sorry, I couldn't process your request. Please try again later.`;
+    return {
+      status: false,
+      message: `Sorry, I couldn't process your request. Please try again later.`,
+    };
   }
 };
 
-export const generateResponse = async (text: string): Promise<string> => {
-  const prompt = `*Instruction:* You are a friendly and engaging Telegram chat bot. Your goal is to respond to the user's message in a natural, conversational way, like a real person would chat.
+export const generateResponse = async (
+  text: string,
+  summary: string
+): Promise<IAiGlobalResponse> => {
+  const prompt = `*Instruction:* You are a friendly and engaging Telegram chat bot. Your goal is to respond to the user's message in a natural, conversational way, like a real person would chat. 
+
+*Conversation Summary So Far:*
+${summary}
 
 *Consider these points for your response:*
 *   *Acknowledge/Address:* Directly address the user's message or question.
@@ -70,13 +87,49 @@ IGNORE_WHEN_COPYING_END`;
   try {
     const result = await model.generateContent(prompt);
 
-    return `${result.response.text()}`;
+    return {
+      status: true,
+      message: `${result.response.text()}`,
+    };
   } catch (error) {
-    return `Sorry, I couldn't process your request. Please try again later.`;
+    return {
+      status: false,
+      message: `Sorry, I couldn't process your request. Please try again later.`,
+    };
   }
 };
 
-export const utils = {
-  correctGrammar,
-  generateResponse,
+export const summarizeConversation = async (
+  summary: string | null,
+  userMessage: string,
+  assistantMessage: string
+): Promise<IAiGlobalResponse> => {
+  const prompt = `*You are an AI assistant that maintains a concise summary of an ongoing conversation between a user and the AI. Your task is to summarize the conversation and keep the previous summary as concise as possible. You can make the summary as long as you like.*
+
+Below is the previous summary of the conversation so far:
+${
+  summary ??
+  "no summary text at all because this is the start of a new conversation"
+}
+The user just sent this message:
+${userMessage}
+
+The AI responded with:
+${assistantMessage}
+
+Please provide a concise summary of this new conversation.`;
+
+  try {
+    const result = await model.generateContent(prompt);
+
+    return {
+      status: true,
+      message: `${result.response.text()}`,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message: `Sorry, I couldn't process your request. Please try again later.`,
+    };
+  }
 };
