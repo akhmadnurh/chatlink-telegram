@@ -3,3 +3,8 @@ export interface IGlobalResponse<T = any> {
   message: string;
   data?: T;
 }
+
+export interface IAiGlobalResponse {
+  status: boolean;
+  message: string;
+}
