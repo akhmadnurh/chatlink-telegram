@@ -1,6 +1,6 @@
 import { join } from "path";
 import { IUserSummaryDb } from "../interfaces/global/db.interface";
-import { JSONFilePreset } from "lowdb/node";
+import { Low, JSONFile } from "lowdb";
 import { handleError } from "./error.util";
 
 const defaultData: IUserSummaryDb = {
@@ -10,7 +10,15 @@ export const getUserDb = async (chatId: number): Promise<IUserSummaryDb> => {
   const dbPath = join(__dirname, "..", "..", "db", `${chatId}.json`);
 
   try {
-    const db = await JSONFilePreset<IUserSummaryDb>(dbPath, defaultData);
+    const adapter = new JSONFile<IUserSummaryDb>(dbPath);
+    const db = new Low(adapter);
+
+    await db.read();
+
+    if (!db.data) {
+      db.data = defaultData;
+      await db.write();
+    }
 
     return db.data;
   } catch (error) {
@@ -22,9 +30,12 @@ export const setUserDb = async (chatId: number, summary: string) => {
   const dbPath = join(__dirname, "..", "..", "db", `${chatId}.json`);
 
   try {
-    const db = await JSONFilePreset<IUserSummaryDb>(dbPath, defaultData);
+    const adapter = new JSONFile<IUserSummaryDb>(dbPath);
+    const db = new Low(adapter);
 
-    db.data.summary = summary;
+    await db.read();
+
+    db.data = { summary };
 
     await db.write();
 
