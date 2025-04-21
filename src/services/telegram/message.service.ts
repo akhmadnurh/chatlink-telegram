@@ -19,6 +19,8 @@ export const SProcessMessage = async (
 ): Promise<IGlobalResponse<ITelegramMessageResponse>> => {
   const text = body.message.text ?? "";
 
+  console.log("body", body);
+
   try {
     const userDb = await getUserDb(body.message.chat.id);
 
