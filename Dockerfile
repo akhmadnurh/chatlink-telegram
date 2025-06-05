@@ -6,24 +6,23 @@ FROM node:22.14.0-alpine AS builder
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json (or yarn.lock)
+# Copy package.json and yarn.lock
 # We copy these first to leverage Docker's build cache.
-# If these files don't change, Docker won't re-run 'npm install'.
+# If these files don't change, Docker won't re-run 'yarn install'.
 COPY package.json ./
-# If you are using yarn, you would copy yarn.lock instead:
-# COPY yarn.lock ./
+COPY yarn.lock ./
 
-# Install project dependencies.
-# --omit=dev prevents devDependencies from being installed in the production image.
-# If you need devDependencies for a specific runtime task, adjust this.
-RUN npm install --omit=dev
+# Install project dependencies using Yarn.
+# --production flag ensures only production dependencies are installed.
+# This prevents devDependencies from being installed in the production image.
+RUN yarn install --production --frozen-lockfile
 
 # Copy the rest of the application source code
 COPY . .
 
 # Build the TypeScript project into JavaScript
 # This command runs `tsc` as defined in your package.json scripts.
-RUN npm run build
+RUN yarn build
 
 # Stage 2: Create the production-ready image
 # Use a minimal Node.js runtime image for the final deployment.
@@ -34,10 +33,12 @@ FROM node:22.14.0-alpine
 WORKDIR /app
 
 # Copy only the necessary files from the builder stage:
-# - package.json (needed for `npm start`)
+# - package.json (needed for `yarn start`)
+# - yarn.lock (needed for consistency, though often not strictly for runtime)
 # - node_modules (production dependencies)
 # - dist directory (compiled JavaScript code)
 COPY --from=builder /app/package.json ./
+COPY --from=builder /app/yarn.lock ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
@@ -48,4 +49,4 @@ EXPOSE 3000
 
 # Define the command to run your application.
 # This uses the `start` script defined in your package.json.
-CMD ["npm", "start"]
+CMD ["yarn", "start"]
