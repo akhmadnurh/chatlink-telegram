@@ -12,10 +12,9 @@ WORKDIR /app
 COPY package.json ./
 COPY yarn.lock ./
 
-# Install project dependencies using Yarn.
-# --production flag ensures only production dependencies are installed.
-# This prevents devDependencies from being installed in the production image.
-RUN yarn install --production --frozen-lockfile
+# Install ALL project dependencies (including devDependencies) for the build stage.
+# --immutable ensures the lockfile is respected strictly.
+RUN yarn install --immutable
 
 # Copy the rest of the application source code
 COPY . .
@@ -32,14 +31,15 @@ FROM node:22.14.0-alpine
 # Set the working directory to /app
 WORKDIR /app
 
-# Copy only the necessary files from the builder stage:
-# - package.json (needed for `yarn start`)
-# - yarn.lock (needed for consistency, though often not strictly for runtime)
-# - node_modules (production dependencies)
-# - dist directory (compiled JavaScript code)
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/yarn.lock ./
-COPY --from=builder /app/node_modules ./node_modules
+# Copy package.json and yarn.lock to the final image.
+# These are needed for yarn to correctly execute the 'start' script.
+COPY package.json ./
+COPY yarn.lock ./
+
+# Install ONLY production dependencies for the final, lightweight image.
+RUN yarn install --production --frozen-lockfile
+
+# Copy the compiled JavaScript code from the builder stage.
 COPY --from=builder /app/dist ./dist
 
 # Expose the port your Express application listens on.
